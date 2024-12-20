@@ -1,0 +1,16 @@
+services:
+  dummy-problems:
+    container_name: dummy-problems
+    tty: true
+    build:
+      context: ../docker
+      dockerfile: Dockerfile
+    environment:
+      - DISPLAY=host.docker.internal:0
+    volumes:
+      - ../:/home/ubuntu/dummy-problems
+      - data:/home/ubuntu/data
+    # runtime: nvidia
+
+volumes:
+  data:
