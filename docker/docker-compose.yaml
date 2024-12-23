@@ -11,6 +11,7 @@ services:
       - ../:/home/ubuntu/dummy-problems
       - data:/home/ubuntu/data
     # runtime: nvidia
+    shm_size: '2gb'
 
 volumes:
   data:
