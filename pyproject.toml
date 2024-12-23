@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dummy-problems"
-version = "0.1.0"
+version = "0.1.1"
 description = "Solving simple problems using machine learning"
 authors = ["Jorge Mariscal Harana <jorge.mariscal.harana@gmail.com>"]
 readme = "README.md"
@@ -8,13 +8,7 @@ repository = "https://github.com/jmariscal-harana/dummy-problems"
 packages = [{include = "dummy_problems"}]
 
 [tool.poetry.dependencies]
-python = "^3.10"
-pytest = "^8.3.4"
-opencv-python = "^4.10.0.84"
-opencv-contrib-python = "^4.10.0.84"
-ipykernel = "^6.29.5"
-matplotlib = "^3.10.0"
-torch = "2.2"
+python = "3.12"
 lightning = "^2.5.0.post0"
 
 [build-system]
