@@ -50,6 +50,7 @@ class LettersDataModule(L.LightningDataModule):
     def __init__(self, settings: dict) -> None:
         super().__init__()
         self.dataset_dir = settings['dataset_dir']
+        self.settings = settings
 
     def prepare_data(self):
         if not self.dataset_dir.exists():
@@ -65,13 +66,13 @@ class LettersDataModule(L.LightningDataModule):
             raise NotImplementedError(f"{stage} stage not implemented")
 
     def train_dataloader(self):
-        return DataLoader(self.letters_train, batch_size=32)
+        return DataLoader(self.letters_train, batch_size=32, num_workers=self.settings['num_workers'])
 
     def val_dataloader(self):
-        return DataLoader(self.letters_val, batch_size=32)
+        return DataLoader(self.letters_val, batch_size=32, num_workers=self.settings['num_workers'])
 
     def test_dataloader(self):
-        return DataLoader(self.letters_test, batch_size=32)
+        return DataLoader(self.letters_test, batch_size=32, num_workers=self.settings['num_workers'])
 
     def predict_dataloader(self):
         raise NotImplementedError("predict dataloader not implemented")
