@@ -60,6 +60,8 @@ class LettersDataModule(L.LightningDataModule):
         if stage == "fit":
             dataset = LettersDataset(self.dataset_dir / "train", transform=DEFAULT_TRANSFORM)
             self.letters_train, self.letters_val = train_test_split(dataset, test_size=0.2, random_state=42, shuffle=True, stratify=dataset.targets)
+        elif stage == "train":
+            self.letters_train = LettersDataset(self.dataset_dir / "train", transform=DEFAULT_TRANSFORM)
         elif stage == "test":
             self.letters_test = LettersDataset(self.dataset_dir / "test", transform=DEFAULT_TRANSFORM)
         else:
