@@ -8,8 +8,9 @@ repository = "https://github.com/jmariscal-harana/dummy-problems"
 packages = [{include = "dummy_problems"}]
 
 [tool.poetry.dependencies]
-python = "3.12"
+python = "^3.10"
 lightning = "^2.5.0.post0"
+timm = "^1.0.12"
 
 [build-system]
 requires = ["poetry-core"]
