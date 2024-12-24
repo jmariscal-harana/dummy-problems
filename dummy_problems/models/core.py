@@ -4,6 +4,12 @@ import lightning as L
 import torch
 from timm import create_model
 import torchmetrics
+from sklearn.svm import SVC
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import classification_report, confusion_matrix
+
 
 class DLClassificationModel(L.LightningModule):
     def __init__(self, settings):
@@ -36,81 +42,83 @@ class DLClassificationModel(L.LightningModule):
         self.log('test_acc_epoch', self.accuracy)
 
     def configure_optimizers(self):
-        return torch.optim.AdamW(self.model.parameters(), lr=0.005)   
+        if settings["model_name"] == "tiny_vit_21m_512.dist_in22k_ft_in1k":
+            optimizer = torch.optim.AdamW(self.model.parameters(), lr=0.05)  # lower learning rate for small dataset
 
-
-from sklearn.svm import SVC
-from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import Pipeline
-from sklearn.model_selection import GridSearchCV
+        return optimizer
 
 
 class SupportVectorMachine:
     def __init__(self, settings):
         self.settings = settings
 
-        # Create pipeline with scaling and SVM and setup a grid search
-        pipeline = Pipeline([
+        # Create pipeline with scaling and SVM and set up a grid search
+        estimator = Pipeline([
             ('scaler', StandardScaler()),
-            ('svm', SVC(kernel='rbf'))
+            ('svm', SVC())
         ])
 
         param_grid = {
-            'svm__C': [0.1, 1, 10],  # Regularization parameter
-            'svm__gamma': ['scale', 'auto', 0.1, 0.01]  # Kernel coefficient
+            'svm__C': [0.001, 0.01, 0.1, 1, 10, 100, 1000],  # regularization parameter
+            'svm__kernel': ['linear', 'rbf', 'polynomial', 'sigmoid'],
+            'svm__gamma': ['scale', 'auto', 0.1, 0.01, 0.001],  # kernel coefficient
         }
 
-        self.grid_search = GridSearchCV(
-            pipeline,
+        self.model = GridSearchCV(
+            estimator,
             param_grid,
             cv=5,
-            n_jobs=-1,
-            verbose=1
+            n_jobs=15,
+            verbose=2
         )
 
     def __preprocess_data(self, data):
-        # TODO: For image data, need to reshape to 2D array
-        data is the dataset already
-        X_train_flat = X_train.reshape(X_train.shape[0], -1)
-        y_train = y values as int
+        images = torch.stack([d[0][0] for d in data])
+        images = images.reshape(images.shape[0], -1)
+        targets = torch.stack([d[1] for d in data])
 
-        return X_train_flat, y_train
+        return images, targets
 
     def fit(self, data):
-        X, y = self.__preprocess_data(data)
+        images, targets = self.__preprocess_data(data)
 
-        self.grid_search.fit(X, y)
-        print(f"Best parameters: {self.grid_search.best_params_}")
-        print(f"Best cross-validation score: {self.grid_search.best_score_:.3f}")
+        self.model.fit(images, targets)
+        print(f"Best parameters: {self.model.best_params_}")
 
     def test(self, data):
-        X, y = self.__preprocess_data(data)
+        images, targets = self.__preprocess_data(data)
+        labels = list(data.labels_to_targets.keys())
+        
+        predictions = self.model.predict(images)
+        
+        print(classification_report(targets, predictions, target_names=labels, digits=3))
+        print(confusion_matrix(targets, predictions))
 
-        self.grid_search.score(X, y)
-        test_score = self.grid_search.score(X, y)
-        print(f"Test accuracy: {test_score:.3f}")
 
 MODEL_TYPES = {
     "DL": DLClassificationModel,
     "SVM": SupportVectorMachine,
 }
 
-# NOTE: DL models only.
+# NOTE: DL model settings only.
 # DL models from the "The timm (PyTorch Image Models) Leaderboard" (https://huggingface.co/spaces/timm/leaderboard) 
 # have been chosen based on their avg_top1 scores and by searching for *tiny* models only, since the training dataset is small.
-MODEL_NAMES = {
-    "tiny_vit_21m_512.dist_in22k_ft_in1k",
+SETTINGS_DL = {
+    "tiny_vit_21m_512.dist_in22k_ft_in1k": {
+        "num_workers": 1,
+        "checkpoint": "lightning_logs/version_0/checkpoints/epoch=99-step=700.ckpt",
+    }
 }
 
 if __name__ == "__main__":
-    settings = {
-        "dataset_dir": Path("/home/ubuntu/data/letters_dataset"),
-        "num_workers": 1,
+    settings =  {
         "model_type": "SVM",
-        # "model_name": "tiny_vit_21m_512.dist_in22k_ft_in1k",
+        "model_name": "tiny_vit_21m_512.dist_in22k_ft_in1k",
+        "dataset_dir": Path("/home/ubuntu/data/letters_dataset"),
         "stage": "train",
-        # "checkpoint": "lightning_logs/version_0/checkpoints/epoch=99-step=700.ckpt"
     }
+    if settings["model_type"] == "DL":
+        settings.update(SETTINGS_DL[settings["model_name"]])
     
     data = LettersDataModule(settings)
     model = MODEL_TYPES[settings['model_type']](settings)
@@ -125,10 +133,7 @@ if __name__ == "__main__":
             trainer.test(model=model, datamodule=data, ckpt_path=settings['checkpoint'])
 
     elif settings['model_type'] == "SVM":
-        data.setup(settings['stage'])  # set up splits: train (train + val) or test
-        if settings['stage'] == "train":
-            model.fit(data.letters_train)
-        elif settings['stage'] == "test":
-            model.test(data.letters_test)
-
-
+        data.setup("train")
+        model.fit(data.letters_train)
+        data.setup("test")
+        model.test(data.letters_test)
