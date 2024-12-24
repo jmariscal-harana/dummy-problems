@@ -70,25 +70,24 @@ class SupportVectorMachine:
 
     def __preprocess_data(self, data):
         # TODO: For image data, need to reshape to 2D array
+        data is the dataset already
         X_train_flat = X_train.reshape(X_train.shape[0], -1)
-        X_test_flat = X_test.reshape(X_test.shape[0], -1)
+        y_train = y values as int
 
-        return X_train_flat, X_test_flat
+        return X_train_flat, y_train
 
     def fit(self, data):
         X, y = self.__preprocess_data(data)
 
         self.grid_search.fit(X, y)
-        
         print(f"Best parameters: {self.grid_search.best_params_}")
         print(f"Best cross-validation score: {self.grid_search.best_score_:.3f}")
 
-    def test(self):
+    def test(self, data):
         X, y = self.__preprocess_data(data)
 
         self.grid_search.score(X, y)
-
-        test_score = self.grid_search.score(X_test_flat, y_test)
+        test_score = self.grid_search.score(X, y)
         print(f"Test accuracy: {test_score:.3f}")
 
 MODEL_TYPES = {
@@ -106,19 +105,18 @@ MODEL_NAMES = {
 if __name__ == "__main__":
     settings = {
         "dataset_dir": Path("/home/ubuntu/data/letters_dataset"),
-        "num_workers": 15,
-        "model_type": "DL",
-        "model_name": "tiny_vit_21m_512.dist_in22k_ft_in1k",
+        "num_workers": 1,
+        "model_type": "SVM",
+        # "model_name": "tiny_vit_21m_512.dist_in22k_ft_in1k",
         "stage": "train",
-        "checkpoint": "lightning_logs/version_0/checkpoints/epoch=99-step=700.ckpt"
-        # "checkpoint": "lightning_logs/version_2/checkpoints/epoch=999-step=7000.ckpt"
+        # "checkpoint": "lightning_logs/version_0/checkpoints/epoch=99-step=700.ckpt"
     }
     
     data = LettersDataModule(settings)
     model = MODEL_TYPES[settings['model_type']](settings)
 
     if settings['model_type'] == "DL":
-        if settings['stage'] == "train":
+        if settings['stage'] == "fit":
             callbacks=[L.pytorch.callbacks.EarlyStopping(monitor="val_loss", mode="min")]
             trainer = L.Trainer(max_epochs=1000, callbacks=callbacks, log_every_n_steps=5)
             trainer.fit(model, data)
@@ -127,9 +125,10 @@ if __name__ == "__main__":
             trainer.test(model=model, datamodule=data, ckpt_path=settings['checkpoint'])
 
     elif settings['model_type'] == "SVM":
+        data.setup(settings['stage'])  # set up splits: train (train + val) or test
         if settings['stage'] == "train":
-            model.fit(data)
+            model.fit(data.letters_train)
         elif settings['stage'] == "test":
-            model.test(data)
+            model.test(data.letters_test)
 
 
