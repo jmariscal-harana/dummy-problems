@@ -10,7 +10,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import classification_report, confusion_matrix
-
+from sklearn.decomposition import PCA
 
 class SupportVectorMachine:
     def __init__(self, settings):
@@ -19,19 +19,19 @@ class SupportVectorMachine:
         # Create pipeline with scaling and SVM and set up a grid search
         estimator = Pipeline([
             ('scaler', StandardScaler()),
+            ('pca', PCA(n_components=0.95)),
             ('svm', SVC())
         ])
 
         param_grid = {
-            'svm__C': [0.001, 0.01, 0.1, 1, 10, 100, 1000],  # regularization parameter
-            'svm__kernel': ['linear', 'rbf', 'polynomial', 'sigmoid'],
-            'svm__gamma': ['scale', 'auto', 0.1, 0.01, 0.001],  # kernel coefficient
-        }
+            'svm__C': [1, 10, 100],
+            'svm__gamma': ['scale', 0.1, 0.01],
+            }
 
         self.model = GridSearchCV(
             estimator,
             param_grid,
-            cv=5,
+            cv=2,
             n_jobs=settings["num_workers"],
             verbose=2
         )
@@ -169,7 +169,7 @@ class DLClassificationModel(L.LightningModule):
     def configure_optimizers(self):
         if self.settings["model_name"] == "ConvNet":
             optimizer = torch.optim.Adam(self.model.parameters())
-        elif self.settings["model_name"] == "tiny_vit_21m_512.dist_in22k_ft_in1k":
+        elif self.settings["model_name"] == "tiny_vit_21m_224.dist_in22k_ft_in1k":
             optimizer = torch.optim.AdamW(self.model.parameters())
         else:
             raise NotImplementedError(f"Missing optimizer for {self.settings['model_name']} model")
@@ -188,12 +188,10 @@ MODEL_TYPES = {
 # (and I am training on a free CPU instance!).
 SETTINGS_DL = {
     "ConvNet": {
-        "num_workers": 15,
         "checkpoint": "lightning_logs/version_32/checkpoints/epoch=8-step=5850.ckpt",
     },
-    "tiny_vit_21m_512.dist_in22k_ft_in1k": {
-        "num_workers": 15,
-        "checkpoint": "lightning_logs/version_9/checkpoints/epoch=4-step=35.ckpt",
+    "tiny_vit_21m_224.dist_in22k_ft_in1k": {
+        "checkpoint": "lightning_logs/version_41/checkpoints/epoch=7-step=56.ckpt",
     },
 }
 
@@ -201,10 +199,11 @@ if __name__ == "__main__":
     settings =  {
         "num_classes": 26,
         "dataset_dir": Path("/home/ubuntu/data/letters_dataset"),
+        "num_workers": 2,
 
-        "model_type": "DL",
-        "model_name": "tiny_vit_21m_512.dist_in22k_ft_in1k",
-        "stage": "fit",
+        "model_type": "SVM",
+        "model_name": "tiny_vit_21m_224.dist_in22k_ft_in1k",
+        "stage": "train",
     }
     if settings["model_type"] == "DL":
         settings.update(SETTINGS_DL[settings["model_name"]])
@@ -216,6 +215,7 @@ if __name__ == "__main__":
         data.setup("train")
         model.fit(data.letters_train)
         data.setup("test")
+        model.test(data.letters_train)  # sanity check
         model.test(data.letters_test)
     
     elif settings['model_type'] == "DL":
