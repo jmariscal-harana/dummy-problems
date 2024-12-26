@@ -52,20 +52,21 @@ Currently, three different ML models can be benchmarked: a Support Vector Machin
 - A state-of-the-art Transformer (TinyViT) has been chosen based on its avg_top1 score on the "timm" leaderboard (https://huggingface.co/spaces/timm/leaderboard). A tiny model has been chosen based on available compute and original train split size (208 images).
 
 Results
-samples per letter (train) = 10
+samples per letter = 10 (train + validate)
 CONVNET
 train acc 0.817307710647583
 test acc 0.03846153989434242
 
-samples per letter (train) = 100
+samples per letter = 100 (train + validate)
 CONVNET
 train acc 0.9437500238418579
 test acc 0.4326923191547394
 
-samples per letter (train) = 1000
+samples per letter = 1000 (train + validate)
 CONVNET
 train acc 0.9970192313194275 
 test acc 0.9790384769439697
 
 ## Reproducing results
 Due to the randomness of the data generator, approximate results can be obtained by running `notebooks/classifier_benchmark.ipynb`.
+Note that this notebook has been generated to facilitate the process. The original code can be found in `dummy_problems/dataloaders/core.py`.

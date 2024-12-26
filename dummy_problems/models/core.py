@@ -32,7 +32,7 @@ class SupportVectorMachine:
             estimator,
             param_grid,
             cv=5,
-            n_jobs=15,
+            n_jobs=settings["num_workers"],
             verbose=2
         )
 
@@ -123,35 +123,46 @@ class ConvNet(nn.Module):
 class DLClassificationModel(L.LightningModule):
     def __init__(self, settings):
         super().__init__()
+        self.save_hyperparameters()
+
         if settings["model_name"] == "ConvNet":
-            self.model = ConvNet()
+            self.model = ConvNet(settings)
         else:
             self.model = create_model(settings["model_name"], num_classes=settings["num_classes"])
+
         self.loss_fn = torch.nn.CrossEntropyLoss()
-        self.accuracy = torchmetrics.classification.Accuracy(task="multiclass", num_classes=settings["num_classes"])
+        self.accuracy_train = torchmetrics.classification.Accuracy(task="multiclass", num_classes=settings["num_classes"])
+        self.accuracy_val = torchmetrics.classification.Accuracy(task="multiclass", num_classes=settings["num_classes"])
+        self.accuracy_test = torchmetrics.classification.Accuracy(task="multiclass", num_classes=settings["num_classes"])
 
     def training_step(self, batch):
         images, targets = batch
         outputs = self.model(images)
+        
         loss = self.loss_fn(outputs, targets)
         self.log("train_loss", loss, prog_bar=True)
+        
+        self.accuracy_train(outputs, targets)
+        self.log('train_acc', self.accuracy_train, on_step=True, on_epoch=False, prog_bar=True)
+
         return loss
 
     def validation_step(self, batch):
         images, targets = batch
         outputs = self.model(images)
+        
         loss = self.loss_fn(outputs, targets)
         self.log("val_loss", loss, prog_bar=True)
+
+        self.accuracy_val(outputs, targets)
+        self.log('val_acc', self.accuracy_val, on_step=True, on_epoch=True)
 
     def test_step(self, batch):
         images, targets = batch
         outputs = self.model(images)
-        
-        self.accuracy(outputs, targets)
-        self.log('test_acc_step', self.accuracy)
-
-    def on_test_epoch_end(self):
-        self.log('test_acc_epoch', self.accuracy)
+                
+        self.accuracy_test(outputs, targets)
+        self.log('test_acc', self.accuracy_test, on_step=True, on_epoch=True)
 
     def configure_optimizers(self):
         if settings["model_name"] == "ConvNet":
@@ -170,25 +181,27 @@ MODEL_TYPES = {
 }
 
 # NOTE: DL model settings only.
-# DL models from the "The timm (PyTorch Image Models) Leaderboard" (https://huggingface.co/spaces/timm/leaderboard) 
-# have been chosen based on their avg_top1 scores and by searching for *tiny* models only, since the training dataset is small.
+# The top DL model from the "The timm (PyTorch Image Models) Leaderboard" (https://huggingface.co/spaces/timm/leaderboard) 
+# has been chosen based on its avg_top1 score and by searching for *tiny* models only, since the training dataset is small
+# (and I am training on a free CPU instance!).
 SETTINGS_DL = {
-    "tiny_vit_21m_512.dist_in22k_ft_in1k": {
-        "num_workers": 1,
-        "checkpoint": "lightning_logs/version_0/checkpoints/epoch=99-step=700.ckpt",
-    },
     "ConvNet": {
-        "num_workers": 1,
-        "checkpoint": "TODO",
+        "num_workers": 15,
+        "checkpoint": "lightning_logs/version_32/checkpoints/epoch=8-step=5850.ckpt",
+    },
+    "tiny_vit_21m_512.dist_in22k_ft_in1k": {
+        "num_workers": 15,
+        "checkpoint": "lightning_logs/version_9/checkpoints/epoch=4-step=35.ckpt",
     },
 }
 
 if __name__ == "__main__":
     settings =  {
+        "num_classes": 26,
+        "dataset_dir": Path("/home/ubuntu/data/letters_dataset"),
+
         "model_type": "DL",
         "model_name": "tiny_vit_21m_512.dist_in22k_ft_in1k",
-        "dataset_dir": Path("/home/ubuntu/data/letters_dataset"),
-        "num_classes": 26,
         "stage": "fit",
     }
     if settings["model_type"] == "DL":
@@ -197,17 +210,18 @@ if __name__ == "__main__":
     data = LettersDataModule(settings)
     model = MODEL_TYPES[settings['model_type']](settings)
 
-    if settings['model_type'] == "DL":
-        if settings['stage'] == "fit":
-            callbacks=[L.pytorch.callbacks.EarlyStopping(monitor="val_loss", mode="min")]
-            trainer = L.Trainer(max_epochs=1000, callbacks=callbacks, log_every_n_steps=5)
-            trainer.fit(model, data)
-        elif settings['stage'] == "test":
-            trainer = L.Trainer(log_every_n_steps=5)
-            trainer.test(model=model, datamodule=data, ckpt_path=settings['checkpoint'])
-
-    elif settings['model_type'] == "SVM":
+    if settings['model_type'] == "SVM":
         data.setup("train")
         model.fit(data.letters_train)
         data.setup("test")
         model.test(data.letters_test)
+    
+    elif settings['model_type'] == "DL":
+        callbacks=[L.pytorch.callbacks.EarlyStopping(monitor="val_loss", mode="min")]
+        if settings['stage'] == "fit":
+            trainer = L.Trainer(max_epochs=10, callbacks=callbacks, log_every_n_steps=5)
+            trainer.fit(model, data)
+        elif settings['stage'] == "test":
+            model = DLClassificationModel.load_from_checkpoint(settings['checkpoint'])
+            trainer = L.Trainer()
+            trainer.test(model, data)
