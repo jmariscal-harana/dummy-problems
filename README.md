@@ -54,18 +54,18 @@ Currently, three different ML models can be benchmarked: a Support Vector Machin
 Results
 samples per letter = 10 (train + validate)
 CONVNET
-train acc 0.817307710647583
-test acc 0.03846153989434242
+train acc 0.817
+test acc 0.077
 
 samples per letter = 100 (train + validate)
 CONVNET
-train acc 0.9437500238418579
-test acc 0.4326923191547394
+train acc 0.944
+test acc 0.433
 
 samples per letter = 1000 (train + validate)
 CONVNET
-train acc 0.9970192313194275 
-test acc 0.9790384769439697
+train acc 0.997
+test acc 0.979
 
 ## Reproducing results
 Due to the randomness of the data generator, approximate results can be obtained by running `notebooks/classifier_benchmark.ipynb`.
