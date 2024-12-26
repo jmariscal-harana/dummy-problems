@@ -125,6 +125,8 @@ class DLClassificationModel(L.LightningModule):
         super().__init__()
         self.save_hyperparameters()
 
+        self.settings = settings
+
         if settings["model_name"] == "ConvNet":
             self.model = ConvNet(settings)
         else:
@@ -165,12 +167,12 @@ class DLClassificationModel(L.LightningModule):
         self.log('test_acc', self.accuracy_test, on_step=True, on_epoch=True)
 
     def configure_optimizers(self):
-        if settings["model_name"] == "ConvNet":
+        if self.settings["model_name"] == "ConvNet":
             optimizer = torch.optim.Adam(self.model.parameters())
-        elif settings["model_name"] == "tiny_vit_21m_512.dist_in22k_ft_in1k":
+        elif self.settings["model_name"] == "tiny_vit_21m_512.dist_in22k_ft_in1k":
             optimizer = torch.optim.AdamW(self.model.parameters())
         else:
-            raise NotImplementedError(f"Missing optimizer for {settings['model_name']} model")
+            raise NotImplementedError(f"Missing optimizer for {self.settings['model_name']} model")
 
         return optimizer
 
