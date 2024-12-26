@@ -38,8 +38,7 @@ tensorboard --logdir=lightning_logs/
 ```
 
 # Example 1: generating a synthetic dataset and benchmarking different classifiers.
-Firstly, run `notebooks/synthetic_data_generation.ipynb` to generate a dataset of uppercase grayscale images. Parameters can be easily modified to change the font, the size, the thickness, or the colour; and to increase/reduce randomness of the dataset.
-
-Secondly, ...
+- Run `notebooks/synthetic_data_generation.ipynb` to generate the "letters" dataset, a dataset of uppercase grayscale images.
+- Run `notebooks/classifier_benchmark.ipynb` to train or test different classifiers on the "letters" dataset. 
 
 SVM (best parameters): {'svm__C': 0.001, 'svm__gamma': 0.01, 'svm__kernel': 'rbf'} 
