@@ -11,12 +11,81 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import classification_report, confusion_matrix
 
 
+import torch.nn as nn
+class ConvNet(nn.Module):
+    def __init__(self, settings):
+        super(ConvNet, self).__init__()
+        
+        # First convolutional block
+        self.conv1 = nn.Conv2d(
+            in_channels=3,
+            out_channels=32,
+            kernel_size=3,
+            padding='same'  # To match TensorFlow's default padding
+        )
+        self.relu1 = nn.ReLU()
+        self.pool1 = nn.MaxPool2d(kernel_size=2)
+        
+        # Second convolutional block
+        self.conv2 = nn.Conv2d(
+            in_channels=32,
+            out_channels=64,
+            kernel_size=3,
+            padding='same'
+        )
+        self.relu2 = nn.ReLU()
+        self.pool2 = nn.MaxPool2d(kernel_size=2)
+        
+        # Third convolutional block
+        self.conv3 = nn.Conv2d(
+            in_channels=64,
+            out_channels=64,
+            kernel_size=3,
+            padding='same'
+        )
+        self.relu3 = nn.ReLU()
+        
+        # Calculate the size of flattened features
+        self.flatten_size = 64 * 32 * 32  # After two 2x2 max poolings: 32/2/2 = 8
+        
+        # Fully connected layers
+        self.fc1 = nn.Linear(self.flatten_size, 64)
+        self.relu4 = nn.ReLU()
+        self.fc2 = nn.Linear(64, settings["num_classes"])
+    
+    def forward(self, x):
+        # First block
+        x = self.conv1(x)
+        x = self.relu1(x)
+        x = self.pool1(x)
+        
+        # Second block
+        x = self.conv2(x)
+        x = self.relu2(x)
+        x = self.pool2(x)
+        
+        # Third block
+        x = self.conv3(x)
+        x = self.relu3(x)
+        
+        # Flatten and fully connected layers
+        x = x.view(-1, self.flatten_size)
+        x = self.fc1(x)
+        x = self.relu4(x)
+        x = self.fc2(x)
+        
+        return x
+
+
 class DLClassificationModel(L.LightningModule):
     def __init__(self, settings):
         super().__init__()
-        self.model = create_model(settings["model_name"], num_classes=26)
+        if settings["model_name"] == "ConvNet":
+            self.model = ConvNet()
+        else:
+            self.model = create_model(settings["model_name"], num_classes=settings["num_classes"])
         self.loss_fn = torch.nn.CrossEntropyLoss()
-        self.accuracy = torchmetrics.classification.Accuracy(task="multiclass", num_classes=26)
+        self.accuracy = torchmetrics.classification.Accuracy(task="multiclass", num_classes=settings["num_classes"])
 
     def training_step(self, batch):
         images, targets = batch
@@ -42,8 +111,12 @@ class DLClassificationModel(L.LightningModule):
         self.log('test_acc_epoch', self.accuracy)
 
     def configure_optimizers(self):
-        if settings["model_name"] == "tiny_vit_21m_512.dist_in22k_ft_in1k":
-            optimizer = torch.optim.AdamW(self.model.parameters(), lr=0.05)  # lower learning rate for small dataset
+        if settings["model_name"] == "ConvNet":
+            optimizer = torch.optim.Adam(self.model.parameters())
+        elif settings["model_name"] == "tiny_vit_21m_512.dist_in22k_ft_in1k":
+            optimizer = torch.optim.AdamW(self.model.parameters())
+        else:
+            raise NotImplementedError(f"Missing optimizer for {settings['model_name']} model")
 
         return optimizer
 
@@ -107,15 +180,20 @@ SETTINGS_DL = {
     "tiny_vit_21m_512.dist_in22k_ft_in1k": {
         "num_workers": 1,
         "checkpoint": "lightning_logs/version_0/checkpoints/epoch=99-step=700.ckpt",
-    }
+    },
+    "ConvNet": {
+        "num_workers": 1,
+        "checkpoint": "lightning_logs/version_0/checkpoints/epoch=99-step=700.ckpt",
+    },
 }
 
 if __name__ == "__main__":
     settings =  {
-        "model_type": "SVM",
+        "model_type": "DL",
         "model_name": "tiny_vit_21m_512.dist_in22k_ft_in1k",
         "dataset_dir": Path("/home/ubuntu/data/letters_dataset"),
-        "stage": "train",
+        "num_classes": 26,
+        "stage": "fit",
     }
     if settings["model_type"] == "DL":
         settings.update(SETTINGS_DL[settings["model_name"]])
