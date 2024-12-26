@@ -2,6 +2,7 @@ from pathlib import Path
 from dummy_problems.dataloaders import LettersDataModule
 import lightning as L
 import torch
+import torch.nn as nn
 from timm import create_model
 import torchmetrics
 from sklearn.svm import SVC
@@ -11,7 +12,53 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import classification_report, confusion_matrix
 
 
-import torch.nn as nn
+class SupportVectorMachine:
+    def __init__(self, settings):
+        self.settings = settings
+
+        # Create pipeline with scaling and SVM and set up a grid search
+        estimator = Pipeline([
+            ('scaler', StandardScaler()),
+            ('svm', SVC())
+        ])
+
+        param_grid = {
+            'svm__C': [0.001, 0.01, 0.1, 1, 10, 100, 1000],  # regularization parameter
+            'svm__kernel': ['linear', 'rbf', 'polynomial', 'sigmoid'],
+            'svm__gamma': ['scale', 'auto', 0.1, 0.01, 0.001],  # kernel coefficient
+        }
+
+        self.model = GridSearchCV(
+            estimator,
+            param_grid,
+            cv=5,
+            n_jobs=15,
+            verbose=2
+        )
+
+    def __preprocess_data(self, data):
+        images = torch.stack([d[0][0] for d in data])
+        images = images.reshape(images.shape[0], -1)
+        targets = torch.stack([d[1] for d in data])
+
+        return images, targets
+
+    def fit(self, data):
+        images, targets = self.__preprocess_data(data)
+
+        self.model.fit(images, targets)
+        print(f"Best parameters: {self.model.best_params_}")
+
+    def test(self, data):
+        images, targets = self.__preprocess_data(data)
+        labels = list(data.labels_to_targets.keys())
+        
+        predictions = self.model.predict(images)
+        
+        print(classification_report(targets, predictions, target_names=labels, digits=3))
+        print(confusion_matrix(targets, predictions))
+
+
 class ConvNet(nn.Module):
     def __init__(self, settings):
         super(ConvNet, self).__init__()
@@ -21,7 +68,7 @@ class ConvNet(nn.Module):
             in_channels=3,
             out_channels=32,
             kernel_size=3,
-            padding='same'  # To match TensorFlow's default padding
+            padding='same'
         )
         self.relu1 = nn.ReLU()
         self.pool1 = nn.MaxPool2d(kernel_size=2)
@@ -46,7 +93,7 @@ class ConvNet(nn.Module):
         self.relu3 = nn.ReLU()
         
         # Calculate the size of flattened features
-        self.flatten_size = 64 * 32 * 32  # After two 2x2 max poolings: 32/2/2 = 8
+        self.flatten_size = 64 * 32 * 32
         
         # Fully connected layers
         self.fc1 = nn.Linear(self.flatten_size, 64)
@@ -54,17 +101,13 @@ class ConvNet(nn.Module):
         self.fc2 = nn.Linear(64, settings["num_classes"])
     
     def forward(self, x):
-        # First block
+        # Convolutional blocks
         x = self.conv1(x)
         x = self.relu1(x)
-        x = self.pool1(x)
-        
-        # Second block
+        x = self.pool1(x)        
         x = self.conv2(x)
         x = self.relu2(x)
         x = self.pool2(x)
-        
-        # Third block
         x = self.conv3(x)
         x = self.relu3(x)
         
@@ -121,56 +164,9 @@ class DLClassificationModel(L.LightningModule):
         return optimizer
 
 
-class SupportVectorMachine:
-    def __init__(self, settings):
-        self.settings = settings
-
-        # Create pipeline with scaling and SVM and set up a grid search
-        estimator = Pipeline([
-            ('scaler', StandardScaler()),
-            ('svm', SVC())
-        ])
-
-        param_grid = {
-            'svm__C': [0.001, 0.01, 0.1, 1, 10, 100, 1000],  # regularization parameter
-            'svm__kernel': ['linear', 'rbf', 'polynomial', 'sigmoid'],
-            'svm__gamma': ['scale', 'auto', 0.1, 0.01, 0.001],  # kernel coefficient
-        }
-
-        self.model = GridSearchCV(
-            estimator,
-            param_grid,
-            cv=5,
-            n_jobs=15,
-            verbose=2
-        )
-
-    def __preprocess_data(self, data):
-        images = torch.stack([d[0][0] for d in data])
-        images = images.reshape(images.shape[0], -1)
-        targets = torch.stack([d[1] for d in data])
-
-        return images, targets
-
-    def fit(self, data):
-        images, targets = self.__preprocess_data(data)
-
-        self.model.fit(images, targets)
-        print(f"Best parameters: {self.model.best_params_}")
-
-    def test(self, data):
-        images, targets = self.__preprocess_data(data)
-        labels = list(data.labels_to_targets.keys())
-        
-        predictions = self.model.predict(images)
-        
-        print(classification_report(targets, predictions, target_names=labels, digits=3))
-        print(confusion_matrix(targets, predictions))
-
-
 MODEL_TYPES = {
-    "DL": DLClassificationModel,
     "SVM": SupportVectorMachine,
+    "DL": DLClassificationModel,
 }
 
 # NOTE: DL model settings only.
@@ -183,7 +179,7 @@ SETTINGS_DL = {
     },
     "ConvNet": {
         "num_workers": 1,
-        "checkpoint": "lightning_logs/version_0/checkpoints/epoch=99-step=700.ckpt",
+        "checkpoint": "TODO",
     },
 }
 
