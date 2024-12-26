@@ -83,16 +83,13 @@ if __name__ == "__main__":
     settings = {
         "dataset_dir": Path("/home/ubuntu/data/letters_dataset"),
         "stage": "fit",
+        "num_workers": 15,
     }
     
     data = LettersDataModule(settings)
     data.setup("fit")
     data.setup("test")
     
-    print("Training split size:", len(data.train_dataloader()))
-    print("Validation split size:", len(data.val_dataloader()))
-    print("Test split size:", len(data.test_dataloader()))
-
     print("\nTarget frequencies in the training split:")
     count_target_frequency(data.train_dataloader)
     print("\nTarget frequencies in the validation split:")
