@@ -9,7 +9,6 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 import torch
 
-DEFAULT_TRANSFORM = v2.Compose([v2.ToDtype(torch.float32, scale=True)])
 
 def count_target_frequency(dataloader) -> dict:
     targets = sorted([x.item() for xs in dataloader() for x in xs[1]])
@@ -52,18 +51,23 @@ class LettersDataModule(L.LightningDataModule):
         self.dataset_dir = settings['dataset_dir']
         self.settings = settings
 
+        if settings["model_name"] == "tiny_vit_21m_512.dist_in22k_ft_in1k":
+            self.transform = v2.Compose([v2.ToDtype(torch.float32, scale=True), v2.Resize((512, 512))])
+        else:
+            self.transform = v2.Compose([v2.ToDtype(torch.float32, scale=True)])
+
     def prepare_data(self):
         if not self.dataset_dir.exists():
             raise RuntimeError(f"Dataset directory not found at {self.dataset_dir}")
 
     def setup(self, stage: str):
         if stage == "fit":
-            dataset = LettersDataset(self.dataset_dir / "train", transform=DEFAULT_TRANSFORM)
+            dataset = LettersDataset(self.dataset_dir / "train", transform=self.transform)
             self.letters_train, self.letters_val = train_test_split(dataset, test_size=0.2, random_state=42, shuffle=True, stratify=dataset.targets)
         elif stage == "train":
-            self.letters_train = LettersDataset(self.dataset_dir / "train", transform=DEFAULT_TRANSFORM)
+            self.letters_train = LettersDataset(self.dataset_dir / "train", transform=self.transform)
         elif stage == "test":
-            self.letters_test = LettersDataset(self.dataset_dir / "test", transform=DEFAULT_TRANSFORM)
+            self.letters_test = LettersDataset(self.dataset_dir / "test", transform=self.transform)
         else:
             raise NotImplementedError(f"{stage} stage not implemented")
 
