@@ -51,8 +51,8 @@ class LettersDataModule(L.LightningDataModule):
         self.dataset_dir = settings['dataset_dir']
         self.settings = settings
 
-        if settings["model_name"] == "tiny_vit_21m_512.dist_in22k_ft_in1k":
-            self.transform = v2.Compose([v2.ToDtype(torch.float32, scale=True), v2.Resize((512, 512))])
+        if settings["model_name"] == "tiny_vit_21m_224.dist_in22k_ft_in1k":
+            self.transform = v2.Compose([v2.ToDtype(torch.float32, scale=True), v2.Resize((224, 224))])
         else:
             self.transform = v2.Compose([v2.ToDtype(torch.float32, scale=True)])
 
