@@ -35,7 +35,7 @@ tensorboard --logdir=lightning_logs/
 ```
 
 # Example 1: generating a synthetic dataset and benchmarking different classifiers.
-## Dataset generator
+## Synthetic data generation
 Run `notebooks/synthetic_data_generation.ipynb` to generate the "letters" dataset, a dataset of uppercase grayscale images.
 
 Parameters can be easily modified to change the font, the size, the thickness, or the colour; and to increase/reduce the randomness of the dataset. The default settings produce the following split:
@@ -43,7 +43,7 @@ Parameters can be easily modified to change the font, the size, the thickness, o
 - Validate: 2 images per letter = 52 images
 - Test: 2 images per letter = 52 images
 
-## Benchmarking classifiers
+## Classifier benchmark
 Run `notebooks/classifier_benchmark.ipynb` to train or test different classifiers on the "letters" dataset.
 
 Currently, three different ML models can be benchmarked: a Support Vector Machine (SVM), a Convolutional Neural Network (CNN), and a state-of-the-art Transformer:
@@ -51,21 +51,27 @@ Currently, three different ML models can be benchmarked: a Support Vector Machin
 - A simple, custom CNN has been chosen as a tradeoff between model size and performance (SVM vs Transformer).
 - A state-of-the-art Transformer (TinyViT) has been chosen based on its avg_top1 score on the "timm" leaderboard (https://huggingface.co/spaces/timm/leaderboard). A tiny model has been chosen based on available compute and original train split size (208 images).
 
-Results
-samples per letter = 10 (train + validate)
-CONVNET
-train acc 0.817
-test acc 0.077
+### Results
+Where possible, given computational limitations, the models have been benchmarked for three dataset sizes (i.e. 10, 100, 1000), where the number represents the number
+of training + validation samples per letter.
 
-samples per letter = 100 (train + validate)
-CONVNET
-train acc 0.944
-test acc 0.433
+| MODEL       	| DATASET SIZE 	| ACCURACY (TRAIN) 	| ACCURACY (TEST) 	|
+|-------------	|--------------	|:-:           	    | :-:           	|
+|             	| 10           	|       0.712      	|      0.058      	|
+| **SVM**	    | 100          	|       1.000   	|      0.165      	|
+|             	| 1000         	|         -      	|        -      	|
+|             	| 10           	|       0.817      	|      0.077      	|
+| **ConvNet** 	| 100          	|       0.944      	|      0.433      	|
+|             	| 1000         	|       0.997      	|      0.979      	|
+|             	| 10           	|       0.039      	|      0.039      	|
+| **TinyViT** 	| 100          	|       0.039      	|      0.039      	|
+|             	| 1000         	|         -      	|        -      	|
 
-samples per letter = 1000 (train + validate)
-CONVNET
-train acc 0.997
-test acc 0.979
+TODO: TinyViT - must run smaller input size tinyvit on larger dataset size
+
+TODO: SVM - When training on smaller images / larger datasets, it works much better:
+- Dimensionality: Your images are being flattened into very high-dimensional vectors (128*128 = 16,384 dimensions), which can lead to poor SVM performance due to the curse of dimensionality.
+- Small dataset: Only 10 training images per class is insufficient for good generalization.
 
 ## Reproducing results
 Due to the randomness of the data generator, approximate results can be obtained by running `notebooks/classifier_benchmark.ipynb`.
