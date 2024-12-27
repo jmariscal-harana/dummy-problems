@@ -79,7 +79,7 @@ class ConvNet(nn.Module):
         
         # First convolutional block
         self.conv1 = nn.Conv2d(
-            in_channels=3,
+            in_channels=1,
             out_channels=32,
             kernel_size=3,
             padding='same'
@@ -138,13 +138,17 @@ class DLClassificationModel(L.LightningModule):
     def __init__(self, settings):
         super().__init__()
         self.save_hyperparameters()
-
         self.settings = settings
 
         if settings["model_name"] == "ConvNet":
             self.model = ConvNet(settings)
         else:
-            self.model = create_model(settings["model_name"], num_classes=settings["num_classes"])
+            self.model = create_model(
+                settings["model_name"],
+                pretrained=True,
+                num_classes=settings["num_classes"],
+                in_chans=1,
+                )
 
         self.loss_fn = torch.nn.CrossEntropyLoss()
         self.accuracy_train = torchmetrics.classification.Accuracy(task="multiclass", num_classes=settings["num_classes"])
@@ -181,12 +185,7 @@ class DLClassificationModel(L.LightningModule):
         self.log('test_acc', self.accuracy_test, on_step=True, on_epoch=True)
 
     def configure_optimizers(self):
-        if self.settings["model_name"] == "ConvNet":
-            optimizer = torch.optim.Adam(self.model.parameters())
-        elif self.settings["model_name"] == "tiny_vit_21m_224.dist_in22k_ft_in1k":
-            optimizer = torch.optim.AdamW(self.model.parameters())
-        else:
-            raise NotImplementedError(f"Missing optimizer for {self.settings['model_name']} model")
+        optimizer = torch.optim.AdamW(self.model.parameters())
 
         return optimizer
 
@@ -207,12 +206,12 @@ if __name__ == "__main__":
     settings =  {
         "num_classes": 26,
         "dataset_dir": Path("/home/ubuntu/data/letters_dataset"),
-        "num_workers": 2,
+        "num_workers": 15,
 
-        "model_type": "SVM",
-        "model_name": "SVM",
+        "model_type": "DL",
+        "model_name": "tiny_vit_21m_224.dist_in22k_ft_in1k",
         "stage": "train",
-        "checkpoint": "/home/ubuntu/dummy-problems/weights/svm_10.pkl",
+        "checkpoint": "lightning_logs/version_2/checkpoints/epoch=9-step=70.ckpt",
     }
     
     data = LettersDataModule(settings)

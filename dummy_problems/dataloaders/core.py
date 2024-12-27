@@ -30,7 +30,7 @@ class LettersDataset(VisionDataset):
         self.targets = torch.tensor([self.labels_to_targets[l] for l in labels])
     
     def __getitem__(self, idx: int) -> Tuple[Any, Any]:
-        img = decode_image(self.image_dirs[idx], mode=ImageReadMode.RGB)
+        img = decode_image(self.image_dirs[idx], mode=ImageReadMode.GRAY)
         target = self.targets[idx]
 
         if self.transform is not None:
