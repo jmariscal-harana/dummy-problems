@@ -36,12 +36,12 @@ tensorboard --logdir=lightning_logs/
 
 # Example 1: generating a synthetic dataset and benchmarking different classifiers.
 ## Synthetic data generation
-Run `notebooks/synthetic_data_generation.ipynb` to generate the "letters" dataset, a dataset of uppercase grayscale images.
-
-Parameters can be easily modified to change the font, the size, the thickness, or the colour; and to increase/reduce the randomness of the dataset. The default settings produce the following split:
+Run `notebooks/synthetic_data_generation.ipynb` to generate the "letters" dataset, a dataset of images of grayscale letters. The current settings produce a dataset of 128x128 images of uppercase grayscale letters with the following data split:
 - Train: 8 images per letter = 208 images
 - Validate: 2 images per letter = 52 images
 - Test: 2 images per letter = 52 images
+
+The last cell allows you to visualise a few random examples from the train and test sets. Parameters can be easily modified to change the font, the size, the thickness, or the colour; and to increase/reduce the randomness of the dataset. 
 
 ## Classifier benchmark
 Run `notebooks/classifier_benchmark.ipynb` to train or test different classifiers on the "letters" dataset.
