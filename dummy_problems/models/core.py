@@ -11,6 +11,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.decomposition import PCA
+import pickle
+
 
 class SupportVectorMachine:
     def __init__(self, settings):
@@ -43,16 +45,28 @@ class SupportVectorMachine:
 
         return images, targets
 
+    def save_model(self):
+        with open(self.settings["checkpoint"], 'wb') as f:
+            pickle.dump(self.model, f)
+
+    def load_model(self):
+        if not Path(self.settings["checkpoint"]).exists():
+            raise RuntimeError(f"Model not found at {self.settings['checkpoint']}.")
+        with open(self.settings["checkpoint"], 'rb') as f:
+            self.model = pickle.load(f)
+
     def fit(self, data):
         images, targets = self.__preprocess_data(data)
 
         self.model.fit(images, targets)
+        self.save_model()
         print(f"Best parameters: {self.model.best_params_}")
 
     def test(self, data):
         images, targets = self.__preprocess_data(data)
         labels = list(data.labels_to_targets.keys())
         
+        self.load_model()
         predictions = self.model.predict(images)
         
         print(classification_report(targets, predictions, target_names=labels, digits=3))
@@ -182,18 +196,12 @@ MODEL_TYPES = {
     "DL": DLClassificationModel,
 }
 
-# NOTE: DL model settings only.
-# The top DL model from the "The timm (PyTorch Image Models) Leaderboard" (https://huggingface.co/spaces/timm/leaderboard) 
-# has been chosen based on its avg_top1 score and by searching for *tiny* models only, since the training dataset is small
-# (and I am training on a free CPU instance!).
-SETTINGS_DL = {
-    "ConvNet": {
-        "checkpoint": "lightning_logs/version_32/checkpoints/epoch=8-step=5850.ckpt",
-    },
-    "tiny_vit_21m_224.dist_in22k_ft_in1k": {
-        "checkpoint": "lightning_logs/version_41/checkpoints/epoch=7-step=56.ckpt",
-    },
-}
+# Model names (for reference only)
+MODEL_NAMES = {
+    "SVM",
+    "ConvNet",
+    "tiny_vit_21m_224.dist_in22k_ft_in1k",
+    }
 
 if __name__ == "__main__":
     settings =  {
@@ -202,11 +210,10 @@ if __name__ == "__main__":
         "num_workers": 2,
 
         "model_type": "SVM",
-        "model_name": "tiny_vit_21m_224.dist_in22k_ft_in1k",
+        "model_name": "SVM",
         "stage": "train",
+        "checkpoint": "/home/ubuntu/dummy-problems/weights/svm_10.pkl",
     }
-    if settings["model_type"] == "DL":
-        settings.update(SETTINGS_DL[settings["model_name"]])
     
     data = LettersDataModule(settings)
     model = MODEL_TYPES[settings['model_type']](settings)
