@@ -52,27 +52,24 @@ Currently, three different ML models can be benchmarked: a Support Vector Machin
 - A state-of-the-art Transformer (TinyViT) has been chosen based on its avg_top1 score on the "timm" leaderboard (https://huggingface.co/spaces/timm/leaderboard). A tiny model has been chosen based on available compute and original train split size (208 images).
 
 ### Results
-Where possible, given computational limitations, the models have been benchmarked for three dataset sizes (i.e. 10, 100, 1000), where the number represents the number
-of training + validation samples per letter.
+The models have been benchmarked for three dataset sizes (i.e. 10, 100, 1000), where the number represents the number of training + validation samples per letter.
+
 
 | MODEL       	| DATASET SIZE 	| ACCURACY (TRAIN) 	| ACCURACY (TEST) 	|
 |-------------	|--------------	|:-:           	    | :-:           	|
-|             	| 10           	|       0.712      	|      0.058      	|
-| **SVM**	    | 100          	|       1.000   	|      0.165      	|
-|             	| 1000         	|         -      	|        -      	|
+|             	| 10           	|       0.742      	|      0.058      	|
+| **SVM**	    | 100          	|       0.961   	|      0.177      	|
+|             	| 1000         	|         *      	|        *      	|
 |             	| 10           	|       0.817      	|      0.077      	|
 | **ConvNet** 	| 100          	|       0.944      	|      0.433      	|
 |             	| 1000         	|       0.997      	|      0.979      	|
-|             	| 10           	|       0.039      	|      0.039      	|
-| **TinyViT** 	| 100          	|       0.039      	|      0.039      	|
-|             	| 1000         	|         -      	|        -      	|
+|             	| 10           	|        1.0     	|      0.962      	|
+| **TinyViT** 	| 100          	|       0.997    	|      0.998    	|
+|             	| 1000         	|        1.0      	|       1.0      	|
 
-TODO: TinyViT - must run smaller input size tinyvit on larger dataset size
+*Not feasible due to computational limitations.
 
-TODO: SVM - When training on smaller images / larger datasets, it works much better:
-- Dimensionality: Your images are being flattened into very high-dimensional vectors (128*128 = 16,384 dimensions), which can lead to poor SVM performance due to the curse of dimensionality.
-- Small dataset: Only 10 training images per class is insufficient for good generalization.
+For SVM models, when training on smaller images (e.g. 32x32) and larger datasets (e.g. 1000), the testing accuracy improves drastically. An issue with the original image size is that images are flattened into very high-dimensional but sparse vectors (i.e. 128*128 = 16384 dimensions), which can lead to poor SVM performance due to the curse of dimensionality.
 
 ## Reproducing results
-Due to the randomness of the data generator, approximate results can be obtained by running `notebooks/classifier_benchmark.ipynb`.
-Note that this notebook has been generated to facilitate the process. The original code can be found in `dummy_problems/dataloaders/core.py`.
+Due to the randomness of the data generator, approximate results can be obtained by running `notebooks/synthetic_data_generation.ipynb` to generate a test dataset and `notebooks/classifier_benchmark.ipynb` to test the models. Note that the second notebook has been generated to facilitate the process of reproducing the results. The original code can be found in `dummy_problems/models/core.py`.
