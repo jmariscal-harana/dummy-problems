@@ -67,10 +67,11 @@ The models have been benchmarked for three dataset sizes (i.e. 10, 100, 1000), w
 |             	| 10           	|        1.0     	|      0.962      	|
 | **TinyViT** 	| 100          	|       0.997    	|      0.998    	|
 |             	| 1000         	|        1.0      	|       1.0      	|
-
 *Not feasible due to computational limitations.
 
-For SVM models, when training on smaller images (e.g. 32x32) and larger datasets (e.g. 1000), the testing accuracy improves drastically. An issue with the original image size is that images are flattened into very high-dimensional but sparse vectors (i.e. 128*128 = 16384 dimensions), which can lead to poor SVM performance due to the curse of dimensionality.
+For SVM models, when training on smaller images (e.g. 32x32) and larger datasets (e.g. 1000), the testing accuracy improves drastically. An issue with the original image size is that images are flattened into very high-dimensional (but sparse) vectors (i.e. 128*128 = 16384 dimensions), which can lead to poor SVM performance due to the curse of dimensionality.
+
+The CNN model struggles with smaller dataset sizes, but performs well for the largest dataset. The TinyViT model performs well even for smaller datasets. This difference probably stems from the differences in their initial weights: whereas the CNN is randomly initialised and trained from scratch, TinyViT was pre-trained on ImageNet, so it had already learnt meaningful image features. 
 
 ## Reproducing results
 Due to the randomness of the data generator, approximate results can be obtained by running `notebooks/synthetic_data_generation.ipynb` to generate a test dataset and `notebooks/classifier_benchmark.ipynb` to test the models. Note that the second notebook has been generated to facilitate the process of reproducing the results. The original code can be found in `dummy_problems/models/core.py`.
