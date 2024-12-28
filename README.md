@@ -24,10 +24,13 @@ I am mostly following the structure from https://python-poetry.org/docs/basic-us
 There are three key elements: **dataloaders**, **models**, and **visualisation**.
 
 ## Dataloaders
-
+Includes the LettersDataset and LettersDataModule for loading train/val/test data.
 
 ## Models
-
+Includes three different ML models: a Support Vector Machine (SVM), a Convolutional Neural Network (CNN), and a state-of-the-art Transformer:
+- A SVM (classical ML model) has been chosen based on a model comparison for the MNIST dataset (https://yann.lecun.com/exdb/mnist/).
+- A simple, custom CNN has been chosen as a tradeoff between model size and performance (SVM vs Transformer).
+- A state-of-the-art Transformer (TinyViT) has been chosen based on its avg_top1 score on the "timm" leaderboard (https://huggingface.co/spaces/timm/leaderboard). A tiny model has been chosen based on available compute and original train split size (208 images).
 
 ## Visualisation
 Visualise training/validation results by running:
@@ -47,14 +50,8 @@ The last cell allows you to visualise a few random examples from the train and t
 ## Classifier benchmark
 Run `notebooks/classifier_benchmark.ipynb` to train or test different classifiers on the "letters" dataset.
 
-Currently, three different ML models can be benchmarked: a Support Vector Machine (SVM), a Convolutional Neural Network (CNN), and a state-of-the-art Transformer:
-- A SVM (classical ML model) has been chosen based on a model comparison for the MNIST dataset (https://yann.lecun.com/exdb/mnist/).
-- A simple, custom CNN has been chosen as a tradeoff between model size and performance (SVM vs Transformer).
-- A state-of-the-art Transformer (TinyViT) has been chosen based on its avg_top1 score on the "timm" leaderboard (https://huggingface.co/spaces/timm/leaderboard). A tiny model has been chosen based on available compute and original train split size (208 images).
-
 ### Results
 The models have been benchmarked for three dataset sizes (i.e. 10, 100, 1000), where the number represents the number of training + validation samples per letter.
-
 
 | MODEL       	| DATASET SIZE 	| ACCURACY (TRAIN) 	| ACCURACY (TEST) 	|
 |-------------	|--------------	|:-:           	    | :-:           	|
