@@ -1,0 +1,17 @@
+services:
+  dummy-problems:
+    container_name: dummy-problems
+    tty: true
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      - DISPLAY=host.docker.internal:0
+    volumes:
+      - ../:/home/ubuntu/dummy-problems
+      - data:/home/ubuntu/data
+    # runtime: nvidia
+    shm_size: '64gb'
+
+volumes:
+  data:
