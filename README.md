@@ -72,3 +72,12 @@ The CNN model struggles with smaller dataset sizes, but performs well for the la
 
 ## Reproducing results
 Due to the randomness of the data generator, approximate results can be obtained by running `notebooks/synthetic_data_generation.ipynb` to generate a test dataset and `notebooks/classifier_benchmark.ipynb` to test the models. Note that the second notebook has been generated to facilitate the process of reproducing the results. The original code can be found in `dummy_problems/models/core.py`.
+
+# Example 2: train a model to differentiate between different pets
+## Dataset structure:
+pet_1/
+pet_2/
+pet_3/
+train_set.txt
+test_set.txt
+
