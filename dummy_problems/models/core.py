@@ -1,5 +1,5 @@
 from pathlib import Path
-from dummy_problems.dataloaders import LettersDataModule
+from dummy_problems.dataloaders import LettersDataModule, PetsDataModule
 import lightning as L
 import torch
 import torch.nn as nn
@@ -79,7 +79,7 @@ class ConvNet(nn.Module):
         
         # First convolutional block
         self.conv1 = nn.Conv2d(
-            in_channels=1,
+            in_channels=settings["num_channels"],
             out_channels=32,
             kernel_size=3,
             padding='same'
@@ -147,7 +147,7 @@ class DLClassificationModel(L.LightningModule):
                 settings["model_name"],
                 pretrained=True,
                 num_classes=settings["num_classes"],
-                in_chans=1,
+                in_chans=settings["num_channels"],
                 )
 
         self.loss_fn = torch.nn.CrossEntropyLoss()
@@ -204,25 +204,29 @@ MODEL_NAMES = {
 
 if __name__ == "__main__":
     settings =  {
-        "num_classes": 26,
-        "dataset_dir": Path("/home/ubuntu/data/letters_dataset"),
-        "num_workers": 15,
+        "dataset_dir": Path("/home/ubuntu/data/pets"),
+        "input_size": 224,
+        "batch_size": 32,
+        "sampling": "weighted",
+        "num_workers": 7,
 
         "model_type": "DL",
         "model_name": "tiny_vit_21m_224.dist_in22k_ft_in1k",
-        "stage": "train",
-        "checkpoint": "lightning_logs/version_2/checkpoints/epoch=9-step=70.ckpt",
+        "num_classes": 3,
+        "num_channels": 3,
+        "stage": "fit",
+        # "checkpoint": "lightning_logs/version_2/checkpoints/epoch=9-step=70.ckpt",
     }
     
-    data = LettersDataModule(settings)
+    data = PetsDataModule(settings)
     model = MODEL_TYPES[settings['model_type']](settings)
 
     if settings['model_type'] == "SVM":
         data.setup("train")
-        model.fit(data.letters_train)
+        model.fit(data.train_dataset)
         data.setup("test")
-        model.test(data.letters_train)  # sanity check
-        model.test(data.letters_test)
+        model.test(data.train_dataset)  # sanity check
+        model.test(data.test_dataset)
     
     elif settings['model_type'] == "DL":
         callbacks=[L.pytorch.callbacks.EarlyStopping(monitor="val_loss", mode="min")]
