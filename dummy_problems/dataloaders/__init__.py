@@ -1,5 +1,6 @@
-from dummy_problems.dataloaders.core import LettersDataModule
+from dummy_problems.dataloaders.core import LettersDataModule, PetsDataModule
 
 __all__ = [
     "LettersDataModule",
+    "PetsDataModule",
 ]
