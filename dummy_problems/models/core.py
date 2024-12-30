@@ -1,5 +1,6 @@
 from pathlib import Path
 from dummy_problems.dataloaders import LettersDataModule, PetsDataModule
+from dummy_problems.models.evaluation import plot_confusion_matrix, plot_roc_curves
 import lightning as L
 import torch
 import torch.nn as nn
@@ -151,38 +152,60 @@ class DLClassificationModel(L.LightningModule):
                 )
 
         self.loss_fn = torch.nn.CrossEntropyLoss()
+
         self.accuracy_train = torchmetrics.classification.Accuracy(task="multiclass", num_classes=settings["num_classes"])
         self.accuracy_val = torchmetrics.classification.Accuracy(task="multiclass", num_classes=settings["num_classes"])
         self.accuracy_test = torchmetrics.classification.Accuracy(task="multiclass", num_classes=settings["num_classes"])
+        self.confusion_matrix = torchmetrics.classification.ConfusionMatrix(task="multiclass", num_classes=settings["num_classes"])
+        self.roc = torchmetrics.classification.ROC(task="multiclass", num_classes=settings["num_classes"])
 
     def training_step(self, batch):
         images, targets = batch
-        outputs = self.model(images)
+        predictions = self.model(images)
         
-        loss = self.loss_fn(outputs, targets)
+        loss = self.loss_fn(predictions, targets)
         self.log("train_loss", loss, prog_bar=True)
         
-        self.accuracy_train(outputs, targets)
+        self.accuracy_train(predictions, targets)
         self.log('train_acc', self.accuracy_train, on_step=True, on_epoch=False, prog_bar=True)
 
         return loss
 
     def validation_step(self, batch):
         images, targets = batch
-        outputs = self.model(images)
+        predictions = self.model(images)
         
-        loss = self.loss_fn(outputs, targets)
+        loss = self.loss_fn(predictions, targets)
         self.log("val_loss", loss, prog_bar=True)
 
-        self.accuracy_val(outputs, targets)
+        self.accuracy_val(predictions, targets)
         self.log('val_acc', self.accuracy_val, on_step=True, on_epoch=True)
 
     def test_step(self, batch):
         images, targets = batch
-        outputs = self.model(images)
+        predictions = self.model(images)
                 
-        self.accuracy_test(outputs, targets)
+        self.accuracy_test(predictions, targets)
         self.log('test_acc', self.accuracy_test, on_step=True, on_epoch=True)
+        self.confusion_matrix(predictions, targets)
+        self.roc(predictions, targets)
+
+    def on_test_epoch_end(self):
+        """Log epoch-level test metrics."""
+
+        conf_mat = self.confusion_matrix.compute()
+        self.logger.experiment.add_figure(
+            'confusion_matrix',
+            plot_confusion_matrix(conf_mat),
+            self.current_epoch
+        )
+        
+        fpr, tpr, _ = self.roc.compute()
+        self.logger.experiment.add_figure(
+            'roc_curves',
+            plot_roc_curves(fpr, tpr, self.settings["num_classes"]),
+            self.current_epoch
+        )
 
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.model.parameters())
@@ -214,8 +237,8 @@ if __name__ == "__main__":
         "model_name": "tiny_vit_21m_224.dist_in22k_ft_in1k",
         "num_classes": 3,
         "num_channels": 3,
-        "stage": "fit",
-        # "checkpoint": "lightning_logs/version_2/checkpoints/epoch=9-step=70.ckpt",
+        "stage": "test",
+        "checkpoint": "lightning_logs/version_19/checkpoints/epoch=5-step=30.ckpt",
     }
     
     data = PetsDataModule(settings)
