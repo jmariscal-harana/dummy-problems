@@ -205,11 +205,11 @@ class DLClassificationModel(L.LightningModule):
 
         conf_mat = self.confusion_matrix.compute()
         fig = plot_confusion_matrix(conf_mat, self.labels)
-        fig.savefig("confusion_matrix.png")
+        fig.savefig(f"{self.logger.log_dir}/confusion_matrix.png")
 
         fpr, tpr, _ = self.roc.compute()
         fig = plot_roc_curves(fpr, tpr, self.labels)
-        fig.savefig("roc_curves.png")
+        fig.savefig(f"{self.logger.log_dir}/roc_curves.png")
 
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.model.parameters())
@@ -243,7 +243,7 @@ if __name__ == "__main__":
         "num_classes": 3,
         "labels": ["Chinchilla", "Hamster", "Rabbit"],
         "stage": "test",
-        "checkpoint": "lightning_logs/version_19/checkpoints/epoch=5-step=30.ckpt",
+        "checkpoint": "baseline.ckpt",
     }
     
     data = PetsDataModule(settings)
