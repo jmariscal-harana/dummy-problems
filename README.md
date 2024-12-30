@@ -71,7 +71,7 @@ For SVM models, when training on smaller images (e.g. 32x32) and larger datasets
 The CNN model struggles with smaller dataset sizes, but performs well for the largest dataset. The TinyViT model performs well even for smaller datasets. This difference probably stems from the differences in their initial weights: whereas the CNN is randomly initialised and trained from scratch, TinyViT was pre-trained on ImageNet, so it had already learnt meaningful image features. 
 
 ### Reproducing results
-Due to the randomness of the data generator, approximate results can be obtained by running `notebooks/synthetic_data_generation.ipynb` to generate a test dataset and `notebooks/classifier_benchmark.ipynb` to test the models. Note that the second notebook has been generated to facilitate the process of reproducing the results. The original code can be found in `dummy_problems/models/core.py`.
+Due to the randomness of the data generator, approximate results can be obtained by running `notebooks/synthetic_data_generation.ipynb` to generate a test dataset and `notebooks/classifier_benchmark.ipynb` to test the models. Note that the second notebook has been generated to facilitate the process of reproducing the results. The original code can be found in `dummy_problems/models/core.py`. The confusion matrix and ROC figures are both displayed and saved to `notebooks/`.
 
 > [!NOTE]
 > Checkpoints can be downloaded from [Google Drive](https://drive.google.com/drive/folders/12ps_EMCZIZQETBm3mvWmZ7_Y4iw_uRms). To avoid code modifications, save the checkpoints under a newly created `weights/` folder.
@@ -100,7 +100,7 @@ Based on the result from "Example 1", a TinyViT model has been re-trained with E
 | **weighted avg**  | 0.979         |       0.978       |      0.978        | 46        |
   
 ### Reproducing results
-Run `notebooks/classifier_pets.ipynb` to reproduce the results.
+Run `notebooks/classifier_pets.ipynb` to reproduce the results. The confusion matrix and ROC figures are both displayed and saved to `notebooks/`.
 
 > [!NOTE]
 > The `pets_baseline.ckpt` checkpoint can be downloaded from [Google Drive](https://drive.google.com/drive/folders/12ps_EMCZIZQETBm3mvWmZ7_Y4iw_uRms). To avoid code modifications, save the checkpoint under a newly created `weights/` folder.

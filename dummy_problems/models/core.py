@@ -141,7 +141,8 @@ class DLClassificationModel(L.LightningModule):
         self.save_hyperparameters()
         
         self.num_classes = settings["num_classes"]
-        self.labels = settings["labels"]
+        if settings["stage"] == "test":
+            self.labels = settings["labels"]
 
         if settings["model_name"] == "ConvNet":
             self.model = ConvNet(settings)
