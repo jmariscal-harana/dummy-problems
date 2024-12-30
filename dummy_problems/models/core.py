@@ -1,5 +1,5 @@
 from pathlib import Path
-from dummy_problems.dataloaders import LettersDataModule, PetsDataModule
+from dummy_problems.dataloaders import *
 from dummy_problems.models.evaluation import plot_confusion_matrix, plot_roc_curves
 import lightning as L
 import torch
@@ -139,7 +139,9 @@ class DLClassificationModel(L.LightningModule):
     def __init__(self, settings):
         super().__init__()
         self.save_hyperparameters()
-        self.settings = settings
+        
+        self.num_classes = settings["num_classes"]
+        self.labels = settings["labels"]
 
         if settings["model_name"] == "ConvNet":
             self.model = ConvNet(settings)
@@ -159,14 +161,17 @@ class DLClassificationModel(L.LightningModule):
         self.confusion_matrix = torchmetrics.classification.ConfusionMatrix(task="multiclass", num_classes=settings["num_classes"])
         self.roc = torchmetrics.classification.ROC(task="multiclass", num_classes=settings["num_classes"])
 
+        self.predictions_test = []
+        self.targets_test = []
+
     def training_step(self, batch):
         images, targets = batch
         predictions = self.model(images)
         
-        loss = self.loss_fn(predictions, targets)
-        self.log("train_loss", loss, prog_bar=True)
-        
+        loss = self.loss_fn(predictions, targets)        
         self.accuracy_train(predictions, targets)
+
+        self.log("train_loss", loss, prog_bar=True)
         self.log('train_acc', self.accuracy_train, on_step=True, on_epoch=False, prog_bar=True)
 
         return loss
@@ -176,9 +181,9 @@ class DLClassificationModel(L.LightningModule):
         predictions = self.model(images)
         
         loss = self.loss_fn(predictions, targets)
-        self.log("val_loss", loss, prog_bar=True)
-
         self.accuracy_val(predictions, targets)
+
+        self.log("val_loss", loss, prog_bar=True)
         self.log('val_acc', self.accuracy_val, on_step=True, on_epoch=True)
 
     def test_step(self, batch):
@@ -186,26 +191,25 @@ class DLClassificationModel(L.LightningModule):
         predictions = self.model(images)
                 
         self.accuracy_test(predictions, targets)
-        self.log('test_acc', self.accuracy_test, on_step=True, on_epoch=True)
         self.confusion_matrix(predictions, targets)
         self.roc(predictions, targets)
+        self.predictions_test.extend(predictions.argmax(dim=1).tolist())
+        self.targets_test.extend(targets.tolist())
+        
+        self.log('test_acc', self.accuracy_test, on_step=True, on_epoch=True)
 
     def on_test_epoch_end(self):
-        """Log epoch-level test metrics."""
+        """Visualise test metrics."""
+
+        print(classification_report(self.targets_test, self.predictions_test, target_names=self.labels, digits=3))
 
         conf_mat = self.confusion_matrix.compute()
-        self.logger.experiment.add_figure(
-            'confusion_matrix',
-            plot_confusion_matrix(conf_mat),
-            self.current_epoch
-        )
-        
+        fig = plot_confusion_matrix(conf_mat, self.labels)
+        fig.savefig("confusion_matrix.png")
+
         fpr, tpr, _ = self.roc.compute()
-        self.logger.experiment.add_figure(
-            'roc_curves',
-            plot_roc_curves(fpr, tpr, self.settings["num_classes"]),
-            self.current_epoch
-        )
+        fig = plot_roc_curves(fpr, tpr, self.labels)
+        fig.savefig("roc_curves.png")
 
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.model.parameters())
@@ -235,8 +239,9 @@ if __name__ == "__main__":
 
         "model_type": "DL",
         "model_name": "tiny_vit_21m_224.dist_in22k_ft_in1k",
-        "num_classes": 3,
         "num_channels": 3,
+        "num_classes": 3,
+        "labels": ["Chinchilla", "Hamster", "Rabbit"],
         "stage": "test",
         "checkpoint": "lightning_logs/version_19/checkpoints/epoch=5-step=30.ckpt",
     }

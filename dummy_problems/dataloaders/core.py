@@ -15,7 +15,9 @@ from collections import Counter
 
 def count_target_frequency(dataloader) -> dict:
     targets = sorted([x.item() for xs in dataloader() for x in xs[1]])
-    print(pd.DataFrame(targets).value_counts().to_string(header=False))
+    targets_to_labels = {t: l for l, t in dataloader().dataset.labels_to_targets.items()}
+    labels = [targets_to_labels[t] for t in targets]
+    print(pd.DataFrame(labels).value_counts().to_string(header=False))
 
 class SquarePad:
     def __init__(self, fill: Optional[float] = 0.0):
