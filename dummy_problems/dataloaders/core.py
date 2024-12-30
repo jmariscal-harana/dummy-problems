@@ -195,8 +195,6 @@ class PetsDataModule(L.LightningDataModule):
             v2.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
             SquarePad(),
             v2.Resize(settings['input_size']), 
-            # v2.RandomResizedCrop(settings['input_size']),
-            # v2.RandomHorizontalFlip(),
         ])
 
         self.test_transform = v2.Compose([
