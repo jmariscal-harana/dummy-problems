@@ -24,7 +24,7 @@ I am mostly following the structure from https://python-poetry.org/docs/basic-us
 There are three key elements: **dataloaders**, **models**, and **visualisation**.
 
 ## Dataloaders
-Includes the datasets (LettersDataset and PetsDataset) and dataloaders (LettersDataModule and PetsDataModule) for loading train/val/test data.
+Includes the datasets (`LettersDataset` and `PetsDataset`) and dataloaders (`LettersDataModule` and `PetsDataModule`) for loading train/val/test data.
 
 ## Models
 Includes three different ML models: a Support Vector Machine (SVM), a Convolutional Neural Network (CNN), and a state-of-the-art Transformer:
@@ -64,6 +64,7 @@ The models have been benchmarked for three dataset sizes (i.e. 10, 100, 1000), w
 |             	| 10           	|        1.0     	|      0.962      	|
 | **TinyViT** 	| 100          	|       0.997    	|      0.998    	|
 |             	| 1000         	|        1.0      	|       1.0      	|
+
 *Not feasible due to computational limitations.
 
 For SVM models, when training on smaller images (e.g. 32x32) and larger datasets (e.g. 1000), the testing accuracy improves drastically. An issue with the original image size is that images are flattened into very high-dimensional (but sparse) vectors (i.e. 128*128 = 16384 dimensions), which can lead to poor SVM performance due to the curse of dimensionality.
@@ -87,7 +88,7 @@ test_set.txt
 ```
 
 ## Pet classifier
-Based on the result from "Example 1", a TinyViT model has been re-trained with Early Stopping on the above dataset, achieving . Run `notebooks/classifier_pets.ipynb` to train or test on the "pets" dataset.
+Based on the result from "Example 1", a TinyViT model has been re-trained with Early Stopping on the above dataset, achieving 97.8% accuracy (weighted average) on the test set. Run `notebooks/classifier_pets.ipynb` to train or test on the "pets" dataset.
 
 ### Results
 | PET       	    | PRECISION 	| RECALL 	        | F1-SCORE       	| SUPPORT   |
