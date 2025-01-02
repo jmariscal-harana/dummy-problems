@@ -172,3 +172,5 @@ cython_debug/
 
 # CUSTOM
 lightning_logs/
+*.png
+weights/

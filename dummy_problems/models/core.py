@@ -1,5 +1,6 @@
 from pathlib import Path
-from dummy_problems.dataloaders import LettersDataModule
+from dummy_problems.dataloaders import *
+from dummy_problems.models.evaluation import plot_confusion_matrix, plot_roc_curves
 import lightning as L
 import torch
 import torch.nn as nn
@@ -79,7 +80,7 @@ class ConvNet(nn.Module):
         
         # First convolutional block
         self.conv1 = nn.Conv2d(
-            in_channels=1,
+            in_channels=settings["num_channels"],
             out_channels=32,
             kernel_size=3,
             padding='same'
@@ -138,7 +139,10 @@ class DLClassificationModel(L.LightningModule):
     def __init__(self, settings):
         super().__init__()
         self.save_hyperparameters()
-        self.settings = settings
+        
+        self.num_classes = settings["num_classes"]
+        if settings["stage"] == "test":
+            self.labels = settings["labels"]
 
         if settings["model_name"] == "ConvNet":
             self.model = ConvNet(settings)
@@ -147,42 +151,66 @@ class DLClassificationModel(L.LightningModule):
                 settings["model_name"],
                 pretrained=True,
                 num_classes=settings["num_classes"],
-                in_chans=1,
+                in_chans=settings["num_channels"],
                 )
 
         self.loss_fn = torch.nn.CrossEntropyLoss()
+
         self.accuracy_train = torchmetrics.classification.Accuracy(task="multiclass", num_classes=settings["num_classes"])
         self.accuracy_val = torchmetrics.classification.Accuracy(task="multiclass", num_classes=settings["num_classes"])
         self.accuracy_test = torchmetrics.classification.Accuracy(task="multiclass", num_classes=settings["num_classes"])
+        self.confusion_matrix = torchmetrics.classification.ConfusionMatrix(task="multiclass", num_classes=settings["num_classes"])
+        self.roc = torchmetrics.classification.ROC(task="multiclass", num_classes=settings["num_classes"])
+
+        self.predictions_test = []
+        self.targets_test = []
 
     def training_step(self, batch):
         images, targets = batch
-        outputs = self.model(images)
+        predictions = self.model(images)
         
-        loss = self.loss_fn(outputs, targets)
+        loss = self.loss_fn(predictions, targets)        
+        self.accuracy_train(predictions, targets)
+
         self.log("train_loss", loss, prog_bar=True)
-        
-        self.accuracy_train(outputs, targets)
         self.log('train_acc', self.accuracy_train, on_step=True, on_epoch=False, prog_bar=True)
 
         return loss
 
     def validation_step(self, batch):
         images, targets = batch
-        outputs = self.model(images)
+        predictions = self.model(images)
         
-        loss = self.loss_fn(outputs, targets)
-        self.log("val_loss", loss, prog_bar=True)
+        loss = self.loss_fn(predictions, targets)
+        self.accuracy_val(predictions, targets)
 
-        self.accuracy_val(outputs, targets)
+        self.log("val_loss", loss, prog_bar=True)
         self.log('val_acc', self.accuracy_val, on_step=True, on_epoch=True)
 
     def test_step(self, batch):
         images, targets = batch
-        outputs = self.model(images)
+        predictions = self.model(images)
                 
-        self.accuracy_test(outputs, targets)
+        self.accuracy_test(predictions, targets)
+        self.confusion_matrix(predictions, targets)
+        self.roc(predictions, targets)
+        self.predictions_test.extend(predictions.argmax(dim=1).tolist())
+        self.targets_test.extend(targets.tolist())
+        
         self.log('test_acc', self.accuracy_test, on_step=True, on_epoch=True)
+
+    def on_test_epoch_end(self):
+        """Visualise test metrics."""
+
+        print(classification_report(self.targets_test, self.predictions_test, target_names=self.labels, digits=3))
+
+        conf_mat = self.confusion_matrix.compute()
+        fig = plot_confusion_matrix(conf_mat, self.labels)
+        fig.savefig(f"{self.logger.log_dir}/confusion_matrix.png")
+
+        fpr, tpr, _ = self.roc.compute()
+        fig = plot_roc_curves(fpr, tpr, self.labels)
+        fig.savefig(f"{self.logger.log_dir}/roc_curves.png")
 
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.model.parameters())
@@ -204,25 +232,30 @@ MODEL_NAMES = {
 
 if __name__ == "__main__":
     settings =  {
-        "num_classes": 26,
-        "dataset_dir": Path("/home/ubuntu/data/letters_dataset"),
-        "num_workers": 15,
+        "dataset_dir": Path("/home/ubuntu/data/pets"),
+        "input_size": 224,
+        "batch_size": 32,
+        "sampling": "weighted",
+        "num_workers": 7,
 
         "model_type": "DL",
         "model_name": "tiny_vit_21m_224.dist_in22k_ft_in1k",
-        "stage": "train",
-        "checkpoint": "lightning_logs/version_2/checkpoints/epoch=9-step=70.ckpt",
+        "num_channels": 3,
+        "num_classes": 3,
+        "labels": ["Chinchilla", "Hamster", "Rabbit"],
+        "stage": "test",
+        "checkpoint": "baseline.ckpt",
     }
     
-    data = LettersDataModule(settings)
+    data = PetsDataModule(settings)
     model = MODEL_TYPES[settings['model_type']](settings)
 
     if settings['model_type'] == "SVM":
         data.setup("train")
-        model.fit(data.letters_train)
+        model.fit(data.train_dataset)
         data.setup("test")
-        model.test(data.letters_train)  # sanity check
-        model.test(data.letters_test)
+        model.test(data.train_dataset)  # sanity check
+        model.test(data.test_dataset)
     
     elif settings['model_type'] == "DL":
         callbacks=[L.pytorch.callbacks.EarlyStopping(monitor="val_loss", mode="min")]
