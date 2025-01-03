@@ -111,4 +111,3 @@ Run `notebooks/classifier_pets.ipynb` to reproduce the results. The confusion ma
 
 # Example 3: train a DQN to solve the cart pole problem
 This notebook uses code from https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html and https://github.com/pythonlessons/CartPole_reinforcement_learning to train a Deep Q-Network from scratch.
-
