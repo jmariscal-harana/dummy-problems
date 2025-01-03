@@ -20,4 +20,4 @@ ADD --chown=ubuntu:ubuntu . /home/ubuntu/dummy-problems
 RUN mkdir -p /home/ubuntu/data && chown -R ubuntu:ubuntu /home/ubuntu/data
 
 # INSTALL PYTHON DEPENDENCIES
-RUN pip install lightning timm seaborn
+RUN pip install lightning timm seaborn gym pygame
