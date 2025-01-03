@@ -9,6 +9,9 @@ cd docker
 docker compose up
 ```
 
+> [!NOTE]  
+> If you have access to a GPU, uncomment the line `# runtime: nvidia` from the `docker/docker-compose.yaml` file.
+
 ## Pip (experimental)
 To install as a Python package, run:
 ```
@@ -105,4 +108,7 @@ Run `notebooks/classifier_pets.ipynb` to reproduce the results. The confusion ma
 
 > [!NOTE]
 > The `pets_baseline.ckpt` checkpoint can be downloaded from [Google Drive](https://drive.google.com/drive/folders/12ps_EMCZIZQETBm3mvWmZ7_Y4iw_uRms). To avoid code modifications, save the checkpoint under a newly created `weights/` folder.
+
+# Example 3: train a DQN to solve the cart pole problem
+This notebook uses code from https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html and https://github.com/pythonlessons/CartPole_reinforcement_learning to train a Deep Q-Network from scratch.
 
