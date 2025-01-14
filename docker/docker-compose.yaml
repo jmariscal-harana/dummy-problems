@@ -6,8 +6,10 @@ services:
       context: ..
       dockerfile: docker/Dockerfile
     environment:
-      - DISPLAY=host.docker.internal:0
+      - DISPLAY=$DISPLAY
     volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ~/.gitconfig:/home/ubuntu/.gitconfig
       - ../:/home/ubuntu/dummy-problems
       - data:/home/ubuntu/data
     # runtime: nvidia
